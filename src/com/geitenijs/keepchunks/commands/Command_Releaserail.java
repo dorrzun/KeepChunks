@@ -67,12 +67,17 @@ public class Command_Releaserail implements CommandExecutor, TabCompleter {
                     }
                     World realWorld = Bukkit.getWorld(world);
                     Location loc = new Location(realWorld, x, y, z);
+                    loc.setX(loc.getBlockX());
+                    loc.setY(loc.getBlockY());
+                    loc.setZ(loc.getBlockZ());
+                    loc.setPitch(0.0f);
+                    loc.setYaw(0.0f);
                     Material m = loc.getBlock().getType();
                     boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
                     HashSet<Location> explored = new HashSet<>();
                     Queue<Location> agenda = new LinkedList<>();
                     if (!isRail) {
-                        Utilities.msg(s, "&cThere doesn't seem to be a rail at your location.");
+                        Utilities.msg(s, "&cThere doesn't seem to be a rail at that location.");
                         return true;
                     } else {
                         Utilities.msg(s, "&7&oLooking for rails...");
@@ -175,7 +180,7 @@ public class Command_Releaserail implements CommandExecutor, TabCompleter {
             for (int j = -1; j < 2; ++j) {
                 final int z = currentChunk.getZ() + j;
                 final String chunk = x + "#" + z + "#" + world;
-                if (Utilities.chunks.contains(chunk) && Bukkit.getServer().getWorld(world).isChunkForceLoaded(x, z)) {
+                if (Utilities.chunks.contains(chunk)) {
                     if (Utilities.config.getBoolean("general.debug")) {
                         Utilities.consoleMsg(Strings.DEBUGPREFIX + "Releasing chunk (" + x + "," + z + ") in world '" + world + "'...");
                     }

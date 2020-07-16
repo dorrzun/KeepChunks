@@ -13,12 +13,14 @@ import java.util.List;
 
 public class CommandWrapper implements CommandExecutor, TabCompleter {
     private CommandExecutor MainCommand;
+    private CommandExecutor ManageCommand;
     private CommandExecutor HelpCommand;
     private CommandExecutor ReloadCommand;
     private CommandExecutor ListCommand;
     private CommandExecutor ChunkinfoCommand;
     private CommandExecutor KeepchunkCommand;
     private CommandExecutor KeepregionCommand;
+    private CommandExecutor KeepradiusCommand;
     private CommandExecutor KeeprailCommand;
     private CommandExecutor ReleaseallCommand;
     private CommandExecutor ReleasechunkCommand;
@@ -39,12 +41,14 @@ public class CommandWrapper implements CommandExecutor, TabCompleter {
 
     public CommandWrapper() {
         MainCommand = new Command_Main();
+        ManageCommand = new Command_Manage();
         HelpCommand = new Command_Help();
         ReloadCommand = new Command_Reload();
         ListCommand = new Command_List();
         ChunkinfoCommand = new Command_Chunkinfo();
         KeepchunkCommand = new Command_Keepchunk();
         KeepregionCommand = new Command_Keepregion();
+        KeepradiusCommand = new Command_Keepradius();
         KeeprailCommand = new Command_Keeprail();
         ReleaseallCommand = new Command_Releaseall();
         ReleasechunkCommand = new Command_Releasechunk();
@@ -99,7 +103,15 @@ public class CommandWrapper implements CommandExecutor, TabCompleter {
                 } else {
                     Utilities.msg(s, Strings.NOPERM);
                 }
-            } else if (args[0].equalsIgnoreCase("reload")) {
+            }
+            else if (args[0].equalsIgnoreCase("manage")) {
+                if (s.hasPermission("keepchunks.help")) {
+                    return ManageCommand.onCommand(s, c, label, args);
+                } else {
+                    Utilities.msg(s, Strings.NOPERM);
+                }
+            }
+            else if (args[0].equalsIgnoreCase("reload")) {
                 if (s.hasPermission("keepchunks.reload")) {
                     return ReloadCommand.onCommand(s, c, label, args);
                 } else {
@@ -126,6 +138,12 @@ public class CommandWrapper implements CommandExecutor, TabCompleter {
             } else if (args[0].equalsIgnoreCase("keepregion")) {
                 if (s.hasPermission("keepchunks.keepregion")) {
                     return KeepregionCommand.onCommand(s, c, label, args);
+                } else {
+                    Utilities.msg(s, Strings.NOPERM);
+                }
+            } else if (args[0].equalsIgnoreCase("keepradius")) {
+                if (s.hasPermission("keepchunks.keepregion")) {
+                    return KeepradiusCommand.onCommand(s, c, label, args);
                 } else {
                     Utilities.msg(s, Strings.NOPERM);
                 }

@@ -1,6 +1,7 @@
 package com.geitenijs.keepchunks;
 
 import com.geitenijs.keepchunks.commands.CommandWrapper;
+import com.geitenijs.keepchunks.commands.Command_Manage;
 import com.geitenijs.keepchunks.updatechecker.UpdateCheck;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
@@ -105,6 +106,7 @@ public class Utilities {
 
     static void registerEvents() {
         Bukkit.getPluginManager().registerEvents(new Events(), Main.plugin);
+        Bukkit.getPluginManager().registerEvents(new Command_Manage(), Main.plugin);
     }
 
     public static void loadChunks() {

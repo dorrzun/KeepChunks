@@ -45,6 +45,7 @@ public class Strings {
     public static final String CHUNKINFOUSAGE = "&fUsage: &c/kc chunkinfo &f(&ccoords <x> <z> <world> &f|&c current &f|&c worldedit &f| &cworldguard <region> <world>&f)";
     public static final String KEEPCHUNKUSAGE = "&fUsage: &c/kc keepchunk &f(&ccoords <x> <z> <world> &f|&c current&f)";
     public static final String KEEPREGIONUSAGE = "&fUsage: &c/kc keepregion &f(&ccoords <x1> <z1> <x2> <z2> <world> &f|&c worldedit &f| &cworldguard <region> <world>&f)";
+    public static final String KEEPRADIUSUSAGE = "&fUsage: &c/kc keepregion &f(&ccoords <x> <z> <world> &f|&c current&f <radius>)";
     public static final String KEEPRAILUSAGE = "&fUsage: &c/kc keeprail &f(&ccoords <x> <y> <z> <world> &f|&c current&f)";
     public static final String RELEASEALLUSAGE = "&fUsage: &c/kc releaseall";
     public static final String RELEASECHUNKUSAGE = "&fUsage: &c/kc releasechunk &f(&ccoords <x> <z> <world> &f|&c current&f)";

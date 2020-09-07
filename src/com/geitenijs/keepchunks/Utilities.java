@@ -1,7 +1,6 @@
 package com.geitenijs.keepchunks;
 
 import com.geitenijs.keepchunks.commands.CommandWrapper;
-import com.geitenijs.keepchunks.commands.Command_Manage;
 import com.geitenijs.keepchunks.updatechecker.UpdateCheck;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
@@ -11,11 +10,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.logging.Level;
 
@@ -29,7 +30,9 @@ public class Utilities {
     private static String updateVersion;
     public static HashSet<String> chunks;
     public static HashSet<String> chunkloadAll;
-
+    public static Inventory manager = Bukkit.createInventory(null, 9, "KeepChunks Manager");
+    public static Inventory users = Bukkit.createInventory(null,54,"Users with Marked Chunks");
+    public static ArrayList<Inventory> menuWindows = new ArrayList<>(Arrays.asList(manager,users));
     static {
         config = YamlConfiguration.loadConfiguration(new File(Main.plugin.getDataFolder(), "config.yml"));
         data = YamlConfiguration.loadConfiguration(new File(Main.plugin.getDataFolder(), "data.yml"));
@@ -106,7 +109,6 @@ public class Utilities {
 
     static void registerEvents() {
         Bukkit.getPluginManager().registerEvents(new Events(), Main.plugin);
-        Bukkit.getPluginManager().registerEvents(new Command_Manage(), Main.plugin);
     }
 
     public static void loadChunks() {
@@ -256,5 +258,17 @@ public class Utilities {
 
     private static void consoleBanner(final String message) {
         Bukkit.getServer().getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+    }
+    public static void handleMainMenu(){
+
+    }
+    public static void handleUserList(){
+
+    }
+    public static void handleSettings(){
+
+    }
+    public static void handleMapView(){
+
     }
 }

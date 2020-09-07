@@ -2,20 +2,30 @@ package com.geitenijs.keepchunks;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-
+//TODO: Move GUI listeners to a separate listener class and only register them at startup if config file says so.
+//Armor stand and hopper for "arrows"
 public class Events implements Listener {
-
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onChunkUnload(ChunkUnloadEvent e) {
         final Chunk currentChunk = e.getChunk();
@@ -72,4 +82,45 @@ public class Events implements Listener {
             }, 90L);
         }
     }
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInventoryClick(InventoryClickEvent e) {
+        if (!Utilities.menuWindows.contains(e.getInventory())) return;
+        //Else, call handler for each window.
+        e.setCancelled(true);
+        final ItemStack clickedItem = e.getCurrentItem();
+
+        if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
+        final Player p = (Player) e.getWhoClicked();
+        p.openInventory(Utilities.users);
+        p.sendMessage("You clicked at slot " + e.getRawSlot());
+    }
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInventoryClick(final InventoryDragEvent e){
+        if (e.getInventory() == Utilities.manager) {
+            e.setCancelled(true);
+        }
+    }
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInventoryOpen(final InventoryOpenEvent e){
+        if(e.getInventory() == Utilities.manager)
+        initMainMenu();
+    }
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInventoryClose(final InventoryCloseEvent e){
+        deleteItems();
+    }
+    protected ItemStack createGuiItem(final Material material, final String name, final String... lore) {
+        final ItemStack item = new ItemStack(material, 1);
+        final ItemMeta meta = item.getItemMeta();
+
+        meta.setDisplayName(name);
+        meta.setLore(Arrays.asList(lore));
+        item.setItemMeta(meta);
+
+        return item;
+    }
+    public void initMainMenu() {
+        Utilities.manager.addItem(createGuiItem(Material.PLAYER_HEAD, "Manage Player Chunks", "§aEdit & View", "§b Marked chunks by players"));
+    }
+    public void deleteItems(){Utilities.manager.clear();}
 }

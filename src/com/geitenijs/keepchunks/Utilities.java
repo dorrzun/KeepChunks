@@ -11,6 +11,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import sun.awt.Mutex;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,15 +27,14 @@ public class Utilities {
     private static boolean updateAvailable;
     private static String updateVersion;
     public static HashSet<String> chunks;
-    public static HashMap<String,Integer> index;    //uid to perm. level
+    public static HashMap<String,Integer> index;
 
     static {
         config = YamlConfiguration.loadConfiguration(new File(Main.plugin.getDataFolder(), "config.yml"));
         data = YamlConfiguration.loadConfiguration(new File(Main.plugin.getDataFolder(), "data.yml"));
         chunks = new HashSet<>(Utilities.data.getStringList("chunks"));
-        index = loadAllPermissionData();
+        index = loadSavedPermissionData();
 
-        data.createSection("totals", index);
         saveDataFile();
         reloadDataFile();
     }
@@ -86,7 +86,7 @@ public class Utilities {
                 "\nInformation & Support: " + Strings.WEBSITE
                 + "\n\nUnless you know what you're doing, it's best not to touch this file. All configurable options can be found in config.yml");
         data.addDefault("chunks", new ArrayList<>());
-        data.createSection("totals", new HashMap<String,Integer>());
+        //data.createSection("totals", new HashMap<String,Integer>());
         data.addDefault("totals",new HashMap<String,Integer>());
         config.options().copyHeader(true);
         config.options().copyDefaults(true);
@@ -128,30 +128,36 @@ public class Utilities {
             }
         }
     }
-    public static HashMap<String,Integer> loadAllPermissionData(){
+    public static HashMap<String,Integer> loadSavedPermissionData(){
         if(Utilities.data.getConfigurationSection("totals") != null) {
-            consoleMsg("Found some shit to read...\n");
+            if(config.getBoolean("general.debug")) {
+                consoleMsg(Strings.DEBUGPREFIX + "Found previous permission data in data.yml");
+            }
             Map<String, Object> rawData = Utilities.data.getConfigurationSection("totals").getValues(false);
             HashMap<String, Integer> formattedData = new HashMap<>();
             rawData.forEach((k, v) -> formattedData.put(k, (Integer)(v)));
-            consoleMsg("This is the shit: "+ formattedData.toString());
             return formattedData;
         }
         else{
-            consoleMsg("Found no shit to read...\n");
+            if(config.getBoolean("general.debug")) {
+                consoleMsg(Strings.DEBUGPREFIX + "No previous permission data was found in data.yml");
+            }
             return new HashMap<>();
         }
     }
-    public static void loadPlayerPermissions(String uid){
-        if(index.containsKey(uid)){
-            if(config.getBoolean("general.debug")){
-                consoleMsg(Strings.DEBUGPREFIX + " Loading previous permission data for " + uid);
-            }
-        }else{
-            if(config.getBoolean("general.debug")){
+    public static int checkPlayerPermission(String uid){
+        if(!index.containsKey(uid)) {
+            if (config.getBoolean("general.debug"))
                 consoleMsg(Strings.DEBUGPREFIX + "No permission data found for " + uid + ". Creating new profile...");
-            }
+            updatePlayerPermission(uid,0);
         }
+        return index.get(uid);
+    }
+    public static void updatePlayerPermission(String uid, int permissionLevel){
+        index.put(uid,permissionLevel);
+        Utilities.data.createSection("totals", Utilities.index);
+        saveDataFile();
+        reloadDataFile();
     }
     static void startSchedulers() {
         Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.plugin, Utilities::checkForUpdates, 190L, 216000L);

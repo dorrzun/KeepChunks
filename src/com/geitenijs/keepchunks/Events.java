@@ -72,4 +72,9 @@ public class Events implements Listener {
             }, 90L);
         }
     }
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerJoin(PlayerJoinEvent e) {
+        String playerInfo = e.getPlayer().getUniqueId().toString();
+        Utilities.checkPlayerPermission(playerInfo);
+    }
 }

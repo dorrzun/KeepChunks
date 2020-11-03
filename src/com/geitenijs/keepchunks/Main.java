@@ -18,6 +18,8 @@ public class Main extends JavaPlugin {
             Utilities.loadChunks();
             Utilities.startSchedulers();
             Utilities.startMetrics();
+            Utilities.saveDataFile();
+            Utilities.reloadDataFile();
             Utilities.done();
         } else {
             Utilities.errorBanner();

@@ -2,6 +2,7 @@ package com.geitenijs.keepchunks;
 
 import com.geitenijs.keepchunks.commands.CommandWrapper;
 import com.geitenijs.keepchunks.updatechecker.UpdateCheck;
+import com.mojang.datafixers.util.Pair;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import org.bukkit.Bukkit;
@@ -11,7 +12,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import sun.awt.Mutex;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,13 +27,19 @@ public class Utilities {
     private static boolean updateAvailable;
     private static String updateVersion;
     public static HashSet<String> chunks;
-    public static HashMap<String,Integer> index;
+    public static HashMap<String,Pair<Integer,String>> permissions;
+    public static HashMap<String,Integer> tallies;
+    public static HashMap<String,ArrayList<String>> chunksByPlayer;
 
     static {
         config = YamlConfiguration.loadConfiguration(new File(Main.plugin.getDataFolder(), "config.yml"));
         data = YamlConfiguration.loadConfiguration(new File(Main.plugin.getDataFolder(), "data.yml"));
         chunks = new HashSet<>(Utilities.data.getStringList("chunks"));
-        index = loadSavedPermissionData();
+        permissions = loadSavedPermissionData();
+        tallies = loadSavedTalliesData();
+        chunksByPlayer = loadSavedPlayerChunksData();
+
+
 
         saveDataFile();
         reloadDataFile();
@@ -86,8 +92,9 @@ public class Utilities {
                 "\nInformation & Support: " + Strings.WEBSITE
                 + "\n\nUnless you know what you're doing, it's best not to touch this file. All configurable options can be found in config.yml");
         data.addDefault("chunks", new ArrayList<>());
-        //data.createSection("totals", new HashMap<String,Integer>());
-        data.addDefault("totals",new HashMap<String,Integer>());
+        data.addDefault("permissions",new HashMap<String, Pair<Integer,String>>());
+        data.addDefault("tallies",new HashMap<String,Integer>());
+        data.addDefault("chunksByPlayer",new HashMap<String,ArrayList<String>>());
         config.options().copyHeader(true);
         config.options().copyDefaults(true);
         data.options().copyHeader(true);
@@ -128,12 +135,29 @@ public class Utilities {
             }
         }
     }
-    public static HashMap<String,Integer> loadSavedPermissionData(){
-        if(Utilities.data.getConfigurationSection("totals") != null) {
+    public static HashMap<String,Pair<Integer,String>> loadSavedPermissionData(){
+        if(Utilities.data.getConfigurationSection("permissions") != null) {
             if(config.getBoolean("general.debug")) {
                 consoleMsg(Strings.DEBUGPREFIX + "Found previous permission data in data.yml");
             }
-            Map<String, Object> rawData = Utilities.data.getConfigurationSection("totals").getValues(false);
+            Map<String, Object> rawData = Utilities.data.getConfigurationSection("permissions").getValues(false);
+            HashMap<String, Pair<Integer,String>> formattedData = new HashMap<>();
+            rawData.forEach((k, v) -> formattedData.put(k, (Pair<Integer, String>)(v)));
+            return formattedData;
+        }
+        else{
+            if(config.getBoolean("general.debug")) {
+                consoleMsg(Strings.DEBUGPREFIX + "No previous permission data was found in data.yml");
+            }
+            return new HashMap<>();
+        }
+    }
+    public static HashMap<String,Integer> loadSavedTalliesData(){
+        if(Utilities.data.getConfigurationSection("tallies") != null) {
+            if(config.getBoolean("general.debug")) {
+                consoleMsg(Strings.DEBUGPREFIX + "Found previous chunk tally data in data.yml");
+            }
+            Map<String, Object> rawData = Utilities.data.getConfigurationSection("tallies").getValues(false);
             HashMap<String, Integer> formattedData = new HashMap<>();
             rawData.forEach((k, v) -> formattedData.put(k, (Integer)(v)));
             return formattedData;
@@ -145,17 +169,34 @@ public class Utilities {
             return new HashMap<>();
         }
     }
-    public static int checkPlayerPermission(String uid){
-        if(!index.containsKey(uid)) {
+    public static HashMap<String,ArrayList<String>> loadSavedPlayerChunksData() {
+        if (Utilities.data.getConfigurationSection("chunksByPlayer") != null) {
+            if (config.getBoolean("general.debug")) {
+                consoleMsg(Strings.DEBUGPREFIX + "Found previous chunk data for players in data.yml");
+            }
+            Map<String, Object> rawData = Utilities.data.getConfigurationSection("chunksByPlayer").getValues(false);
+            HashMap<String, ArrayList<String>> formattedData = new HashMap<>();
+            rawData.forEach((k, v) -> formattedData.put(k, (ArrayList<String>)v));
+            return formattedData;
+        } else {
+            if (config.getBoolean("general.debug")) {
+                consoleMsg(Strings.DEBUGPREFIX + "No previous permission data was found in data.yml");
+            }
+            return new HashMap<>();
+        }
+    }
+    public static int checkPlayerPermission(Player p){
+        String uid = p.getUniqueId().toString();
+        if(!permissions.containsKey(uid)) {
             if (config.getBoolean("general.debug"))
                 consoleMsg(Strings.DEBUGPREFIX + "No permission data found for " + uid + ". Creating new profile...");
-            updatePlayerPermission(uid,0);
+            updatePlayerPermission(p,0);
         }
-        return index.get(uid);
+        return permissions.get(uid).getFirst();
     }
-    public static void updatePlayerPermission(String uid, int permissionLevel){
-        index.put(uid,permissionLevel);
-        Utilities.data.createSection("totals", Utilities.index);
+    public static void updatePlayerPermission(Player p, int permissionLevel){
+        permissions.put(p.getUniqueId().toString(),new Pair<>(permissionLevel, p.getDisplayName()));
+        Utilities.data.createSection("permissions", Utilities.permissions);
         saveDataFile();
         reloadDataFile();
     }

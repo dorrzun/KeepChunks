@@ -66,7 +66,7 @@ public class UpdateCheck {
                 Bukkit.getScheduler().runTask(this.javaPlugin, () -> this.versionResponse.accept(latestVersion ? VersionResponse.LATEST : VersionResponse.FOUND_NEW, latestVersion ? this.currentVersion : fetchedVersion));
             } catch (IOException ex) {
                 Bukkit.getScheduler().runTask(this.javaPlugin, () -> this.versionResponse.accept(VersionResponse.UNAVAILABLE, null));
-                if (Utilities.config.getBoolean("general.debug")) {
+                if (Utilities.debugMode) {
                     ex.printStackTrace();
                 }
             }

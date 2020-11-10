@@ -22,7 +22,7 @@ public class Events implements Listener {
         final String chunk = currentChunk.getX() + "#" + currentChunk.getZ() + "#"
                 + currentChunk.getWorld().getName();
         if (new HashSet<>(Utilities.chunks).contains(chunk)) {
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + "Chunk (" + currentChunk.getX() + "," + currentChunk.getZ() + ") in world '" + currentChunk.getWorld().getName() + "' is unloading, while it should be force-loaded.");
             }
         }
@@ -47,14 +47,14 @@ public class Events implements Listener {
             final int x = Integer.parseInt(chunkCoordinates[0]);
             final int z = Integer.parseInt(chunkCoordinates[1]);
             final String world = chunkCoordinates[2];
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + "Loading chunk (" + x + "," + z + ") in world '" + world + "'.");
             }
             try {
                 Bukkit.getServer().getWorld(world).loadChunk(x, z);
                 Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, true);
             } catch (NullPointerException ex) {
-                if (Utilities.config.getBoolean("general.debug")) {
+                if (Utilities.debugMode) {
                     Utilities.consoleMsg(Strings.DEBUGPREFIX + "World '" + world + "' doesn't exist, or isn't loaded in memory.");
                 }
             }
@@ -74,7 +74,6 @@ public class Events implements Listener {
     }
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent e) {
-        String playerInfo = e.getPlayer().getUniqueId().toString();
-        Utilities.checkPlayerPermission(playerInfo);
+        Utilities.checkPlayerPermission(e.getPlayer());
     }
 }

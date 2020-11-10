@@ -25,20 +25,8 @@ public class Command_Keepchunk implements CommandExecutor, TabCompleter {
                     final int z = currentChunk.getZ();
                     final String world = currentChunk.getWorld().getName();
                     final String chunk = x + "#" + z + "#" + world;
-                    if (Utilities.chunks.contains(chunk)) {
-                        Utilities.msg(s, "&cChunk &f(" + x + "," + z + ")&c in world &f'" + world + "'&c is already marked.");
-                    } else {
-                        if (Utilities.config.getBoolean("general.debug")) {
-                            Utilities.consoleMsg(Strings.DEBUGPREFIX + "Marking chunk (" + x + "," + z + ") in world '" + world + "'...");
-                        }
-                        Utilities.chunks.add(chunk);
-                        Bukkit.getServer().getWorld(world).loadChunk(x, z);
-                        Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, true);
-                        Utilities.data.set("chunks", new ArrayList<>(Utilities.chunks));
-                        Utilities.saveDataFile();
-                        Utilities.reloadDataFile();
-                        Utilities.msg(s, "&fMarked chunk &9(" + x + "," + z + ")&f in world &6'" + world + "'&f.");
-                    }
+
+                    Utilities.chunkLoadRoutine((Player) s,chunk);
                 } else {
                     Utilities.msg(s, Strings.ONLYPLAYER);
                 }
@@ -59,7 +47,7 @@ public class Command_Keepchunk implements CommandExecutor, TabCompleter {
                     if (Utilities.chunks.contains(chunk)) {
                         Utilities.msg(s, "&cChunk &f(" + x + "," + z + ")&c in world &f'" + world + "'&c is already marked.");
                     } else {
-                        if (Utilities.config.getBoolean("general.debug")) {
+                        if (Utilities.debugMode) {
                             Utilities.consoleMsg(Strings.DEBUGPREFIX + "Marking chunk (" + x + "," + z + ") in world '" + world + "'...");
                         }
                         Utilities.chunks.add(chunk);

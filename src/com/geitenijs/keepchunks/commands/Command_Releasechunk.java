@@ -28,7 +28,7 @@ public class Command_Releasechunk implements CommandExecutor, TabCompleter {
                     if (!Utilities.chunks.contains(chunk)) {
                         Utilities.msg(s, "&cChunk &f(" + x + "," + z + ")&c in world &f'" + world + "'&c isn't marked.");
                     } else {
-                        if (Utilities.config.getBoolean("general.debug")) {
+                        if (Utilities.debugMode) {
                             Utilities.consoleMsg(Strings.DEBUGPREFIX + "Releasing chunk (" + x + "," + z + ") in world '" + world + "'...");
                         }
                         Utilities.chunks.remove(chunk);
@@ -59,7 +59,7 @@ public class Command_Releasechunk implements CommandExecutor, TabCompleter {
                     if (!Utilities.chunks.contains(chunk)) {
                         Utilities.msg(s, "&cChunk &f(" + x + "," + z + ")&c in world &f'" + world + "'&c isn't marked.");
                     } else {
-                        if (Utilities.config.getBoolean("general.debug")) {
+                        if (Utilities.debugMode) {
                             Utilities.consoleMsg(Strings.DEBUGPREFIX + "Releasing chunk (" + x + "," + z + ") in world '" + world + "'...");
                         }
                         Utilities.chunks.remove(chunk);

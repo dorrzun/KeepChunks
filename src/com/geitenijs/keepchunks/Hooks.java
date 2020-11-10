@@ -22,7 +22,7 @@ public class Hooks {
         if (!(wePlugin instanceof WorldEditPlugin)) {
             WorldEdit = false;
             incompatibleWorldEdit = false;
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + Strings.DEPENDENCIES_WE_MISSING);
             }
             return;
@@ -34,7 +34,7 @@ public class Hooks {
         } catch (Exception ex) {
             WorldEdit = false;
             incompatibleWorldEdit = true;
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + Strings.DEPENDENCIES_WE_INCOMPATIBLE);
             }
             return;
@@ -42,13 +42,13 @@ public class Hooks {
         if (worldEditVersion >= 700) {
             WorldEdit = true;
             incompatibleWorldEdit = false;
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + Strings.DEPENDENCIES_WE_COMPATIBLE);
             }
         } else {
             WorldEdit = false;
             incompatibleWorldEdit = true;
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + Strings.DEPENDENCIES_WE_INCOMPATIBLE);
             }
         }
@@ -59,7 +59,7 @@ public class Hooks {
         if (!(wgPlugin instanceof WorldGuardPlugin)) {
             WorldGuard = false;
             incompatibleWorldGuard = false;
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + Strings.DEPENDENCIES_WG_MISSING);
             }
             return;
@@ -71,7 +71,7 @@ public class Hooks {
         } catch (Exception ex) {
             WorldGuard = false;
             incompatibleWorldGuard = true;
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + Strings.DEPENDENCIES_WG_INCOMPATIBLE);
             }
             return;
@@ -79,13 +79,13 @@ public class Hooks {
         if (worldGuardVersion >= 700) {
             WorldGuard = true;
             incompatibleWorldGuard = false;
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + Strings.DEPENDENCIES_WG_COMPATIBLE);
             }
         } else {
             WorldGuard = false;
             incompatibleWorldGuard = true;
-            if (Utilities.config.getBoolean("general.debug")) {
+            if (Utilities.debugMode) {
                 Utilities.consoleMsg(Strings.DEBUGPREFIX + Strings.DEPENDENCIES_WG_INCOMPATIBLE);
             }
         }

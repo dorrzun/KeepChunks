@@ -49,11 +49,11 @@ public class Keepregion_WE implements CommandExecutor, TabCompleter {
                     for (int z = minZ; z <= maxZ; ++z) {
                         final String chunk = x + "#" + z + "#" + world;
                         if (Utilities.chunks.contains(chunk)) {
-                            if (Utilities.config.getBoolean("general.debug")) {
+                            if (Utilities.debugMode) {
                                 Utilities.consoleMsg(Strings.DEBUGPREFIX + "Chunk (" + x + "," + z + ") in world '" + world + "' is already marked.");
                             }
                         } else {
-                            if (Utilities.config.getBoolean("general.debug")) {
+                            if (Utilities.debugMode) {
                                 Utilities.consoleMsg(Strings.DEBUGPREFIX + "Marking chunk (" + x + "," + z + ") in world '" + world + "'...");
                             }
                             Utilities.chunks.add(chunk);

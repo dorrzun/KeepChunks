@@ -52,11 +52,11 @@ public class Releaseregion_WG implements CommandExecutor, TabCompleter {
                 for (int z = minZ; z <= maxZ; ++z) {
                     final String chunk = x + "#" + z + "#" + world;
                     if (!Utilities.chunks.contains(chunk)) {
-                        if (Utilities.config.getBoolean("general.debug")) {
+                        if (Utilities.debugMode) {
                             Utilities.consoleMsg(Strings.DEBUGPREFIX + "Chunk (" + x + "," + z + ") in world '" + world + "' isn't marked.");
                         }
                     } else {
-                        if (Utilities.config.getBoolean("general.debug")) {
+                        if (Utilities.debugMode) {
                             Utilities.consoleMsg(Strings.DEBUGPREFIX + "Releasing chunk (" + x + "," + z + ") in world '" + world + "'...");
                         }
                         Utilities.chunks.remove(chunk);

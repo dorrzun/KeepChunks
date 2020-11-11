@@ -171,8 +171,11 @@ public class Utilities {
             if (debugMode)
                 consoleMsg(Strings.DEBUGPREFIX + "Found previous chunk data for players in data.yml");
             Map<String, Object> rawData = Utilities.data.getConfigurationSection("chunksByPlayer").getValues(false);
+            HashMap<String, ArrayList<String>> partialData = new HashMap<>();
             HashMap<String, HashSet<String>> formattedData = new HashMap<>();
-            rawData.forEach((k, v) -> formattedData.put(k, (HashSet<String>)v)); //TODO: Might be some casting issues or/data not saving as should...
+
+            rawData.forEach((k, v) -> partialData.put(k,(ArrayList<String>)(v)));
+            partialData.forEach((k,v) -> formattedData.put(k,new HashSet(v)));
             return formattedData;
         } else {
             if (debugMode)
@@ -295,15 +298,13 @@ public class Utilities {
             msg(p,Strings.UNUSABLE);
             return;
         }
-        msg(p, "Your size is " + getPlayerChunkList(uid).size() + permissionsEnabled);
         if(permissionsEnabled){
-            if(permissionLevel != 0 && getPlayerChunkList(uid).size() <= 30){ //TODO: This ain't triggering, 1 hunnid on that fo sho.
+            if(permissionLevel != 0 && getPlayerChunkList(uid).size() <= 30){
                 addTally(chunk);
                 addToPlayerChunkList(uid, chunk);
                 chunks.add(chunk);
                 data.set("chunks", new ArrayList<>(Utilities.chunks));
                 msg(p, "&fMarked this chunk &9(" + x + "," + z + ")&f in world &6'" + world + "'&f.");
-                consoleMsg(uid + " chunk list size is currently " + getPlayerChunkList(uid).size());
 
                 saveDataFile();
                 reloadDataFile();

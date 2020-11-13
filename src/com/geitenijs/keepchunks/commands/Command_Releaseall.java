@@ -23,7 +23,7 @@ public class Command_Releaseall implements CommandExecutor, TabCompleter {
                 }
             }
             if (Utilities.chunks.isEmpty()) {
-                Utilities.msg(s, "&cThere don't seem to be any marked chunks.");
+                Utilities.msg(s, "&cThere doesn't seem to be any marked chunks.");
             } else {
                 Utilities.msg(s, "&7&oReleasing all chunks...");
                 int totalChunks = Utilities.chunks.size();
@@ -40,7 +40,15 @@ public class Command_Releaseall implements CommandExecutor, TabCompleter {
                 Utilities.reloadDataFile();
                 Utilities.msg(s, "&aAll &f" + totalChunks + "&a marked chunks have been released.");
             }
-        } else {
+        }else if(args.length == 2){
+            if (Utilities.config.getBoolean("general.releaseallprotection")) {
+                if (s instanceof Player) {
+                    Utilities.msg(s, Strings.ONLYCONSOLE);
+                    return false;
+                }
+            }
+
+        }else {
             Utilities.msg(s, Strings.RELEASEALLUSAGE);
         }
         return true;

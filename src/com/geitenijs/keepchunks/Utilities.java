@@ -7,6 +7,7 @@ import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -29,15 +30,17 @@ public class Utilities {
     public static boolean debugMode;
     public static boolean permissionsEnabled;
     private static String updateVersion;
+    public static ArrayList<Integer> permissionLevelLimit;
     public static HashSet<String> chunks;
-    public static HashMap<String, Integer> permissions;
+    public static HashMap<String,Integer> permissions;
     public static HashMap<String,Integer> tallies;
     public static HashMap<String,HashSet<String>> chunksByPlayer;
 
     static {
         config = YamlConfiguration.loadConfiguration(new File(Main.plugin.getDataFolder(), "config.yml"));
         data = YamlConfiguration.loadConfiguration(new File(Main.plugin.getDataFolder(), "data.yml"));
-        chunks = new HashSet<>(Utilities.data.getStringList("chunks"));
+        permissionLevelLimit = new ArrayList<>(data.getIntegerList("limits"));
+        chunks = new HashSet<>(data.getStringList("chunks"));
         permissions = loadSavedPermissionData();
         tallies = loadSavedTalliesData();
         chunksByPlayer = loadSavedPlayerChunksData();
@@ -74,7 +77,9 @@ public class Utilities {
                 + "\n  colourfulconsole: Console messages will be coloured when this is enabled."
                 + "\n  debug: When set to true, the plugin will log more information to the console."
                 + "\n  releaseallprotection: Do you want to restrict the 'release all' command to the console?"
-                + "\n  permissionsystem: (BETA) Do you want to enable permission levels/chunk marking limits for users?"
+                + "\n  permissionsystem: Do you want to enable permission levels/chunk marking limits for users?"
+                + "\n  permissionlimits: Set the number of chunks that can be loaded for each permission level 0-9."
+                + "\n\tYou may change/remove values between the first and last entry. Default for players is 0, Admins have \"-1\" for unlimited."
                 + "\nupdates:"
                 + "\n  check: When enabled, the plugin will check for updates. No automatic downloads, just a subtle notification in the console."
                 + "\n  notify: Would you like to get an in-game reminder of a new update? Requires permission 'keepchunks.notify.update'.");
@@ -82,6 +87,7 @@ public class Utilities {
         config.addDefault("general.debug", true);
         config.addDefault("general.releaseallprotection", true);
         config.addDefault("general.permissionsystem", true);
+        config.addDefault("general.permissionlimits", new ArrayList<>(Arrays.asList(0,9,18,36,50,100,250,500,750,-1)));
         config.addDefault("updates.check", true);
         config.addDefault("updates.notify", true);
 
@@ -93,6 +99,7 @@ public class Utilities {
         data.addDefault("permissions",new HashMap<String,Integer>());
         data.addDefault("tallies",new HashMap<String,Integer>());
         data.addDefault("chunksByPlayer",new HashMap<String, ArrayList>());
+
         config.options().copyHeader(true);
         config.options().copyDefaults(true);
         data.options().copyHeader(true);
@@ -136,11 +143,9 @@ public class Utilities {
         if(Utilities.data.getConfigurationSection("permissions") != null) {
             if(debugMode)
                 consoleMsg(Strings.DEBUGPREFIX + "Found previous permission data in data.yml");
-
             Map<String, Object> rawData = Utilities.data.getConfigurationSection("permissions").getValues(false);
             HashMap<String,Integer> formattedData = new HashMap<>();
             rawData.forEach((k, v) -> formattedData.put(k, (Integer) v));
-
             return formattedData;
         }
         else{
@@ -153,11 +158,9 @@ public class Utilities {
         if(Utilities.data.getConfigurationSection("tallies") != null) {
             if(debugMode)
                 consoleMsg(Strings.DEBUGPREFIX + "Found previous chunk tally data in data.yml");
-
             Map<String, Object> rawData = Utilities.data.getConfigurationSection("tallies").getValues(false);
             HashMap<String, Integer> formattedData = new HashMap<>();
             rawData.forEach((k, v) -> formattedData.put(k,(Integer)v));
-
             return formattedData;
         }
         else{
@@ -203,15 +206,11 @@ public class Utilities {
         saveDataFile();
         reloadDataFile();
     }
-    public static void addTally(String chunk){
+    public static void addTally(String chunk, int x, int z, String world){
         if(tallies.containsKey(chunk)){
             tallies.put(chunk,tallies.get(chunk)+1);
             data.createSection("tallies", tallies);
         }else{
-            final String[] chunkCoordinates = chunk.split("#");
-            final int x = Integer.parseInt(chunkCoordinates[0]);
-            final int z = Integer.parseInt(chunkCoordinates[1]);
-            final String world = chunkCoordinates[2];
             if (debugMode)
                 consoleMsg(Strings.DEBUGPREFIX + "Loading chunk (" + x + "," + z + ") in world '" + world + "'.");
             try {
@@ -219,20 +218,18 @@ public class Utilities {
                 Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, true);
                 tallies.put(chunk,1);
                 data.createSection("tallies", tallies);
+                chunks.add(chunk);
+                data.set("chunks", new ArrayList<>(Utilities.chunks));
             } catch (NullPointerException ex) {
                 if (debugMode)
                     consoleMsg(Strings.DEBUGPREFIX + "World '" + world + "' doesn't exist, or isn't loaded in memory.");
             }
         }
     }
-    public static void subtractTally(String chunk){
+    public static void subtractTally(String chunk, int x, int z, String world){
         if(tallies.containsKey(chunk)){
             tallies.put(chunk,tallies.get(chunk)-1);
             if(tallies.get(chunk) == 0){
-                final String[] chunkCoordinates = chunk.split("#");
-                final int x = Integer.parseInt(chunkCoordinates[0]);
-                final int z = Integer.parseInt(chunkCoordinates[1]);
-                final String world = chunkCoordinates[2];
                 try {
                     Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, false);
                     tallies.remove(chunk);
@@ -243,7 +240,7 @@ public class Utilities {
                 }
             }
             data.createSection("tallies",tallies);
-            data.set("chunks",chunks);
+            data.set("chunks",new ArrayList<>(chunks));
 
             saveDataFile();
             reloadDataFile();
@@ -253,44 +250,48 @@ public class Utilities {
     }
     public static HashSet<String> getPlayerChunkList(String uid){ return chunksByPlayer.get(uid); }
     public static void addToPlayerChunkList(String uid, String chunk){
-        HashSet<String> chunkList = getPlayerChunkList(uid);
         HashMap<String,ArrayList> formattedPlayerChunkList = new HashMap();
+        HashSet<String> chunkList = getPlayerChunkList(uid);
 
         chunkList.add(chunk);
-        chunksByPlayer.put(uid,chunkList);      //TODO: Pretty sure there is unnecessary overwriting/rewriting here?...
+        chunksByPlayer.put(uid,chunkList);
         chunksByPlayer.forEach((k,v) -> formattedPlayerChunkList.put(k,new ArrayList(v)));
         data.createSection("chunksByPlayer",formattedPlayerChunkList);
     }
     public static void removeFromPlayerChunkList(String uid, String chunk){
-        HashSet<String> PlayerChunkList = new HashSet<>(chunksByPlayer.get(uid));
         HashMap<String,ArrayList> formattedPlayerChunkList = new HashMap();
+        HashSet<String> chunkList = getPlayerChunkList(uid);
 
-        PlayerChunkList.remove(chunk);
-        chunksByPlayer.put(uid,PlayerChunkList);
+        chunkList.remove(chunk);
+        chunksByPlayer.put(uid,chunkList);
         chunksByPlayer.forEach((k,v) -> formattedPlayerChunkList.put(k,new ArrayList(v)));
         data.createSection("chunksByPlayer",formattedPlayerChunkList);
     }
     public static void clearPlayerChunkList(Player p){
         String uid = p.getUniqueId().toString();
         HashSet<String> chunkList = chunksByPlayer.get(uid);
-        for(String chunk : chunkList) {
-            removeFromPlayerChunkList(uid,chunk);
-            subtractTally(chunk);
-        }
+        chunkList.forEach((chunk) -> {
+            String[] chunkCoordinates = chunk.split("#"); //No try/catch because data in playerList is already clean.
+            int x = Integer.parseInt(chunkCoordinates[0]);
+            int z = Integer.parseInt(chunkCoordinates[1]);
+            String world = chunkCoordinates[2];
+            removeFromPlayerChunkList(uid, chunk);
+            subtractTally(chunk, x, z, world);
+        });
         chunksByPlayer.put(uid,chunkList);
         data.createSection("chunksByPlayer",chunksByPlayer);
 
         saveDataFile();
         reloadDataFile();
     }
-    public static void chunkLoadRoutine(Player p, String chunk){
+    public static void chunkLoadRoutine(Player p, String chunk){ //Add chunk ownership check and admin backdoor...
         final String uid = p.getUniqueId().toString();
         final int permissionLevel = checkPlayerPermission(p);
-        final int x;
-        final int z;
+        final int playerChunkLimit = permissionLevelLimit.get(permissionLevel);
+        final int x,z;
         final String world;
         try {
-            String[] chunkCoordinates = chunk.split("#");
+            String[] chunkCoordinates = chunk.split("#"); //Validate chunk before proceeding, saving time and no repeat checks.
             x = Integer.parseInt(chunkCoordinates[0]);
             z = Integer.parseInt(chunkCoordinates[1]);
             world = chunkCoordinates[2];
@@ -299,19 +300,19 @@ public class Utilities {
             return;
         }
         if(permissionsEnabled){
-            if(permissionLevel != 0 && getPlayerChunkList(uid).size() <= 30){
-                addTally(chunk);
-                addToPlayerChunkList(uid, chunk);
-                chunks.add(chunk);
-                data.set("chunks", new ArrayList<>(Utilities.chunks));
-                msg(p, "&fMarked this chunk &9(" + x + "," + z + ")&f in world &6'" + world + "'&f.");
+            if(getPlayerChunkList(uid).size() < playerChunkLimit || permissionLevel == -1){ //Allows admins unlimited loading.
+                if(!getPlayerChunkList(uid).contains(chunk)) {
+                    addTally(chunk,x,z,world);
+                    addToPlayerChunkList(uid, chunk);
+                    msg(p, "&fMarking chunk &9(" + x + "," + z + ")&f in world &6'" + world + "'&f.");
 
-                saveDataFile();
-                reloadDataFile();
-            }else{
+                    saveDataFile();
+                    reloadDataFile();
+                }else
+                    msg(p, "You have already marked chunk &9(" + x + "," + z + ")&f in world &6'" + world + "'&f.");
+            }else
                 msg(p,"You do not have permission to mark chunks or you have reached your limit.");
-            }
-        }else{  //TODO: Non-permission system routine...
+        }else{  //Non-permission system routine...
             if (debugMode)
                 consoleMsg(Strings.DEBUGPREFIX + "Loading chunk (" + x + "," + z + ") in world '" + world + "'.");
             try {
@@ -332,35 +333,46 @@ public class Utilities {
     public static void chunkUnloadRoutine(Player p, String chunk){
         final String uid = p.getUniqueId().toString();
         final int permissionLevel = checkPlayerPermission(p);
-
+        final int playerChunkLimit = permissionLevelLimit.get(permissionLevel);
+        final int x,z;
+        final String world;
+        try {
+            String[] chunkCoordinates = chunk.split("#");
+            x = Integer.parseInt(chunkCoordinates[0]);
+            z = Integer.parseInt(chunkCoordinates[1]);
+            world = chunkCoordinates[2];
+        }catch(NumberFormatException e){
+            msg(p,Strings.UNUSABLE);
+            return;
+        }
         if(permissionsEnabled){
-            if(permissionLevel != 0 && getPlayerChunkList(uid).size() > 0){
-                subtractTally(chunk);
+            if(getPlayerChunkList(uid).size() < playerChunkLimit){
+                subtractTally(chunk, x, z, world);
                 removeFromPlayerChunkList(uid, chunk);
+                msg(p, "&fUnmarking chunk &9(" + x + "," + z + ")&f in world &6'" + world + "'&f.");
+
+                saveDataFile();
+                reloadDataFile();
+            }else
+                msg(p,"You do not have permission to unmark chunks.");
+        }else{
+            if (debugMode)
+                consoleMsg(Strings.DEBUGPREFIX + "Loading chunk (" + x + "," + z + ") in world '" + world + "'.");
+            try {
+                Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, false);
                 chunks.remove(chunk);
 
                 saveDataFile();
                 reloadDataFile();
-            }else{
-                msg(p,"You do not have permission to unmark chunks.");
-            }
-        }else{  //TODO: Non-permission system routine...
-            final String[] chunkCoordinates = chunk.split("#");
-            final int x = Integer.parseInt(chunkCoordinates[0]);
-            final int z = Integer.parseInt(chunkCoordinates[1]);
-            final String world = chunkCoordinates[2];
-            if (debugMode) {
-                consoleMsg(Strings.DEBUGPREFIX + "Loading chunk (" + x + "," + z + ") in world '" + world + "'.");
-            }
-            try {
-                Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, false);
-                chunks.remove(chunk);
             } catch (NullPointerException ex) {
-                if (debugMode) {
+                if (debugMode)
                     consoleMsg(Strings.DEBUGPREFIX + "World '" + world + "' doesn't exist, or isn't loaded in memory.");
-                }
             }
         }
+    }
+    static void setToggles(){
+        debugMode = config.getBoolean("general.debug");
+        permissionsEnabled = config.getBoolean("general.permissionsystem");
     }
     static void startSchedulers() {
         Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.plugin, Utilities::checkForUpdates, 190L, 216000L);
@@ -396,8 +408,6 @@ public class Utilities {
     }
 
     static void done() {
-        debugMode = config.getBoolean("general.debug");
-        permissionsEnabled = config.getBoolean("general.permissionsystem");
         consoleMsg(Strings.PLUGIN + " v" + Strings.VERSION + " has been enabled");
     }
 

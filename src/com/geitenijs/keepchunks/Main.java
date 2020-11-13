@@ -13,6 +13,7 @@ public class Main extends JavaPlugin {
             Utilities.pluginBanner();
             Hooks.registerHooks();
             Utilities.createConfigs();
+            Utilities.setToggles();
             Utilities.registerCommandsAndCompletions();
             Utilities.registerEvents();
             Utilities.loadChunks();

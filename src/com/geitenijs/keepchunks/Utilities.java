@@ -5,9 +5,7 @@ import com.geitenijs.keepchunks.updatechecker.UpdateCheck;
 import com.mojang.datafixers.util.Pair;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
+import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -32,9 +30,14 @@ public class Utilities {
     private static String updateVersion;
     public static ArrayList<Integer> permissionLevelLimit;
     public static HashSet<String> chunks;
+    public static HashSet<Location> explored = new HashSet<>();
+    public static Queue<Location> agenda = new LinkedList<>();
     public static HashMap<String,Integer> permissions;
     public static HashMap<String,Integer> tallies;
     public static HashMap<String,HashSet<String>> chunksByPlayer;
+    public static int totalChunks;
+    public static int totalRails;
+
 
     static {
         config = YamlConfiguration.loadConfiguration(new File(Main.plugin.getDataFolder(), "config.yml"));
@@ -139,11 +142,126 @@ public class Utilities {
             }
         }
     }
+    public static void getN(Location pos, String command) {    //Note on this loop: These four functions all check y +/- 1 to follow any sloped rails!
+        for (int i = -1; i < 2; ++i) {
+            Location candidate = new Location(pos.getWorld(), pos.getBlockX(), pos.getBlockY() + i, pos.getBlockZ() - 1);
+            Material m = candidate.getBlock().getType();
+            boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
+            if (isRail && !explored.contains(candidate) && !agenda.contains(candidate)) {   //If we haven't encountered/backlogged this rail for exploration, do so.
+                if (Utilities.debugMode)
+                    Utilities.consoleMsg(Strings.DEBUGPREFIX + "Found chunk (" + pos.getChunk().getX() + "," + pos.getChunk().getZ() + ") in world '" + pos.getWorld().getName() + "' while discovering rails at (" + pos.getBlockX() + "," + pos.getBlockY() + "," + pos.getBlockZ() + ").");
+
+                updateData(candidate.getChunk(), command);
+                agenda.add(candidate);
+            }
+        }
+    }
+
+    public static void getE(Location pos, String command) {
+        for (int i = -1; i < 2; ++i) {
+            Location candidate = new Location(pos.getWorld(), pos.getBlockX() + 1, pos.getBlockY() + i, pos.getBlockZ());
+            Material m = candidate.getBlock().getType();
+            boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
+            if (isRail && !explored.contains(candidate) && !agenda.contains(candidate)) {
+                if (Utilities.debugMode) {
+                    Utilities.consoleMsg(Strings.DEBUGPREFIX + "Found chunk (" + pos.getChunk().getX() + "," + pos.getChunk().getZ() + ") in world '" + pos.getWorld().getName() + "' while discovering rails at (" + pos.getBlockX() + "," + pos.getBlockY() + "," + pos.getBlockZ() + ").");
+                }
+                updateData(candidate.getChunk(), command);
+                agenda.add(candidate);
+            }
+        }
+    }
+
+    public static void getS(Location pos, String command) {
+        for (int i = -1; i < 2; ++i) {
+            Location candidate = new Location(pos.getWorld(), pos.getBlockX(), pos.getBlockY() + i, pos.getBlockZ() + 1);
+            Material m = candidate.getBlock().getType();
+            boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
+            if (isRail && !explored.contains(candidate) && !agenda.contains(candidate)) {
+                if (Utilities.debugMode) {
+                    Utilities.consoleMsg(Strings.DEBUGPREFIX + "Found chunk (" + pos.getChunk().getX() + "," + pos.getChunk().getZ() + ") in world '" + pos.getWorld().getName() + "' while discovering rails at (" + pos.getBlockX() + "," + pos.getBlockY() + "," + pos.getBlockZ() + ").");
+                }
+                updateData(candidate.getChunk(), command);
+                agenda.add(candidate);
+            }
+        }
+    }
+
+    public static void getW(Location pos, String command) {
+        for (int i = -1; i < 2; ++i) {
+            Location candidate = new Location(pos.getWorld(), pos.getBlockX() - 1, pos.getBlockY() + i, pos.getBlockZ());
+            Material m = candidate.getBlock().getType();
+            boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
+            if (isRail && !explored.contains(candidate) && !agenda.contains(candidate)) {
+                if (debugMode) {
+                    consoleMsg(Strings.DEBUGPREFIX + "Found chunk (" + pos.getChunk().getX() + "," + pos.getChunk().getZ() + ") in world '" + pos.getWorld().getName() + "' while discovering rails at (" + pos.getBlockX() + "," + pos.getBlockY() + "," + pos.getBlockZ() + ").");
+                }
+                updateData(candidate.getChunk(), command);
+                agenda.add(candidate);
+            }
+        }
+    }
+
+    public static void getAdjacent(Location pos, String command) {
+        getN(pos,command);
+        getS(pos,command);
+        getE(pos,command);
+        getW(pos,command);
+    }
+    public static void updateData(Chunk currentChunk, String command) {
+        final String world = currentChunk.getWorld().getName();
+        int chunkX = currentChunk.getX();
+        int chunkZ = currentChunk.getZ();
+        for (int i = -1; i < 2; ++i) {  //Nested loop to also force load the 1x1 chunk perimeter surrounding the desired chunk.
+            int x = chunkX + i;
+            for (int j = -1; j < 2; ++j) {
+                int z = chunkZ + j;
+                final String chunk = x + "#" + z + "#" + world;
+
+                /* Checks which command is calling updateData(), as it must handle some things differently. Calls are mutually exclusive,
+                 * and the command parameter is sanitized by the command wrapper beforehand.*/
+                if(command == "keeprail") {
+                    if (!chunks.contains(chunk)) {
+                        if (debugMode)
+                            consoleMsg(Strings.DEBUGPREFIX + "Marking chunk (" + x + "," + z + ") in world '" + world + "'...");
+
+                        chunks.add(chunk);
+                        Bukkit.getServer().getWorld(world).loadChunk(x, z);
+                        Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, true);
+                        data.set("chunks", new ArrayList<>(Utilities.chunks));
+                        saveDataFile();
+                        reloadDataFile();
+                        ++totalChunks;
+                    }
+                }else{
+                    if (chunks.contains(chunk)) {
+                        if (debugMode)
+                            consoleMsg(Strings.DEBUGPREFIX + "Releasing chunk (" + x + "," + z + ") in world '" + world + "'...");
+
+                        chunks.remove(chunk);
+                        Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, false);
+                        data.set("chunks", new ArrayList<>(chunks));
+                        saveDataFile();
+                        reloadDataFile();
+                        ++totalChunks;
+                    }
+                }
+            }
+        }
+    }
+    public static Location truncateData(Location loc){
+        loc.setX(loc.getBlockX());  //Truncate player coordinate floats back to repeating zeroes, to ensure no duplicate values/repeats during searching.
+        loc.setY(loc.getBlockY());
+        loc.setZ(loc.getBlockZ());
+        loc.setPitch(0.0f);
+        loc.setYaw(0.0f);
+        return loc;
+    }
     public static HashMap<String,Integer> loadSavedPermissionData(){
-        if(Utilities.data.getConfigurationSection("permissions") != null) {
+        if(data.getConfigurationSection("permissions") != null) {
             if(debugMode)
                 consoleMsg(Strings.DEBUGPREFIX + "Found previous permission data in data.yml");
-            Map<String, Object> rawData = Utilities.data.getConfigurationSection("permissions").getValues(false);
+            Map<String, Object> rawData = data.getConfigurationSection("permissions").getValues(false);
             HashMap<String,Integer> formattedData = new HashMap<>();
             rawData.forEach((k, v) -> formattedData.put(k, (Integer) v));
             return formattedData;
@@ -155,10 +273,10 @@ public class Utilities {
         }
     }
     public static HashMap<String,Integer> loadSavedTalliesData(){
-        if(Utilities.data.getConfigurationSection("tallies") != null) {
+        if(data.getConfigurationSection("tallies") != null) {
             if(debugMode)
                 consoleMsg(Strings.DEBUGPREFIX + "Found previous chunk tally data in data.yml");
-            Map<String, Object> rawData = Utilities.data.getConfigurationSection("tallies").getValues(false);
+            Map<String, Object> rawData = data.getConfigurationSection("tallies").getValues(false);
             HashMap<String, Integer> formattedData = new HashMap<>();
             rawData.forEach((k, v) -> formattedData.put(k,(Integer)v));
             return formattedData;
@@ -170,10 +288,10 @@ public class Utilities {
         }
     }
     public static HashMap<String,HashSet<String>> loadSavedPlayerChunksData() {
-        if (Utilities.data.getConfigurationSection("chunksByPlayer") != null) {
+        if (data.getConfigurationSection("chunksByPlayer") != null) {
             if (debugMode)
                 consoleMsg(Strings.DEBUGPREFIX + "Found previous chunk data for players in data.yml");
-            Map<String, Object> rawData = Utilities.data.getConfigurationSection("chunksByPlayer").getValues(false);
+            Map<String, Object> rawData = data.getConfigurationSection("chunksByPlayer").getValues(false);
             HashMap<String, ArrayList<String>> partialData = new HashMap<>();
             HashMap<String, HashSet<String>> formattedData = new HashMap<>();
 
@@ -219,7 +337,7 @@ public class Utilities {
                 tallies.put(chunk,1);
                 data.createSection("tallies", tallies);
                 chunks.add(chunk);
-                data.set("chunks", new ArrayList<>(Utilities.chunks));
+                data.set("chunks", new ArrayList<>(chunks));
             } catch (NullPointerException ex) {
                 if (debugMode)
                     consoleMsg(Strings.DEBUGPREFIX + "World '" + world + "' doesn't exist, or isn't loaded in memory.");
@@ -318,9 +436,9 @@ public class Utilities {
             try {
                 Bukkit.getServer().getWorld(world).loadChunk(x, z);
                 Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, true);
-                Utilities.msg(p, "&fMarked chunk &9(" + x + "," + z + ")&f in world &6'" + world + "'&f.");
+                msg(p, "&fMarked chunk &9(" + x + "," + z + ")&f in world &6'" + world + "'&f.");
                 chunks.add(chunk);
-                data.set("chunks", new ArrayList<>(Utilities.chunks));
+                data.set("chunks", new ArrayList<>(chunks));
 
                 saveDataFile();
                 reloadDataFile();

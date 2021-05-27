@@ -26,7 +26,8 @@ public class Command_Keepchunk implements CommandExecutor, TabCompleter {
                     final String world = currentChunk.getWorld().getName();
                     final String chunk = x + "#" + z + "#" + world;
 
-                    Utilities.chunkLoadRoutine((Player) s,chunk);
+                    //Utilities.chunkLoadRoutine((Player) s,chunk);
+                    //Yeahhhh....forgot I changed this code too..
                 } else {
                     Utilities.msg(s, Strings.ONLYPLAYER);
                 }

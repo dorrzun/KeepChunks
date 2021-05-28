@@ -219,8 +219,10 @@ public class Utilities {
 
                 /* Checks which command is calling updateData(), as it must handle some things differently. Calls are mutually exclusive,
                  * and the command parameter is sanitized by the command wrapper beforehand.*/
-                if(command == "keeprail") {
+                if(command.equalsIgnoreCase("keeprail")) {
+                    consoleMsg("We out here checking shit YO...");
                     if (!chunks.contains(chunk)) {
+                        consoleMsg("Chunk is not yet loaded....let's do dat shit..");
                         if (debugMode)
                             consoleMsg(Strings.DEBUGPREFIX + "Marking chunk (" + x + "," + z + ") in world '" + world + "'...");
 
@@ -233,6 +235,7 @@ public class Utilities {
                         ++totalChunks;
                     }
                 }else{
+                    consoleMsg("RUH ROH MOTHHAFUCKA");
                     if (chunks.contains(chunk)) {
                         if (debugMode)
                             consoleMsg(Strings.DEBUGPREFIX + "Releasing chunk (" + x + "," + z + ") in world '" + world + "'...");

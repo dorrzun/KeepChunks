@@ -11,43 +11,42 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 
+import static com.geitenijs.keepchunks.Utilities.agenda;
+import static com.geitenijs.keepchunks.Utilities.explored;
+import static com.geitenijs.keepchunks.Utilities.totalChunks;
+import static com.geitenijs.keepchunks.Utilities.totalRails;
+import static com.geitenijs.keepchunks.Utilities.getAdjacent;
+import static com.geitenijs.keepchunks.Utilities.truncateData;
+
 public class Command_Keeprail implements CommandExecutor, TabCompleter {
-
-    int totalRails = 0;
-    int totalChunks = 0;
-
     public boolean onCommand(final CommandSender s, final Command c, final String label, final String[] args) {
         if (args.length == 2) {
             if (args[1].equalsIgnoreCase("current")) {
                 if (s instanceof Player) {
                     Location loc = ((Player) s).getLocation();
-                    loc.setX(loc.getBlockX());
-                    loc.setY(loc.getBlockY());
-                    loc.setZ(loc.getBlockZ());
-                    loc.setPitch(0.0f);
-                    loc.setYaw(0.0f);
+                    loc = truncateData(loc);
                     Material m = loc.getBlock().getType();
                     boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
-                    HashSet<Location> explored = new HashSet<>();
-                    Queue<Location> agenda = new LinkedList<>();
-                    if (!isRail) {
-                        Utilities.msg(s, "&cThere doesn't seem to be a rail at your location.");
-                        return true;
-                    } else {
+
+                    if (isRail) {
+                        String command = args[0];
                         Utilities.msg(s, "&7&oLooking for rails...");
                         agenda.add(loc);
                         while (!agenda.isEmpty()) {
                             Location cur = agenda.peek();
                             agenda.remove();
                             explored.add(cur);
-                            getAdjacent(cur, explored, agenda);
+                            getAdjacent(cur,command);
                             ++totalRails;
                         }
                         Utilities.msg(s, "&fFound &c" + totalRails + "&f rails!");
                         Utilities.msg(s, "&fMarked a total of &9" + totalChunks + "&f chunks in world &6'" + loc.getWorld().getName() + "'&f.");
+                    } else {
+                        Utilities.msg(s, "&cThere doesn't seem to be a rail at your location.");
                     }
                     totalRails = 0;
                     totalChunks = 0;
+                    explored.clear();
                 } else {
                     Utilities.msg(s, Strings.ONLYPLAYER);
                 }
@@ -66,34 +65,31 @@ public class Command_Keeprail implements CommandExecutor, TabCompleter {
                         return false;
                     }
                     World realWorld = Bukkit.getWorld(world);
-                    Location loc = new Location(realWorld, x, y, z);
-                    loc.setX(loc.getBlockX());
-                    loc.setY(loc.getBlockY());
-                    loc.setZ(loc.getBlockZ());
-                    loc.setPitch(0.0f);
-                    loc.setYaw(0.0f);
+                    Location loc = truncateData(new Location(realWorld, x, y, z));
                     Material m = loc.getBlock().getType();
                     boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
-                    HashSet<Location> explored = new HashSet<>();
-                    Queue<Location> agenda = new LinkedList<>();
-                    if (!isRail) {
-                        Utilities.msg(s, "&cThere doesn't seem to be a rail at that location.");
-                        return true;
-                    } else {
+
+                    if (isRail) {
+                        String command = args[0];
                         Utilities.msg(s, "&7&oLooking for rails...");
                         agenda.add(loc);
                         while (!agenda.isEmpty()) {
                             Location cur = agenda.peek();
                             agenda.remove();
                             explored.add(cur);
-                            getAdjacent(cur, explored, agenda);
+                            getAdjacent(cur,command);
                             ++totalRails;
                         }
                         Utilities.msg(s, "&fFound &c" + totalRails + "&f rails!");
                         Utilities.msg(s, "&fMarked a total of &9" + totalChunks + "&f chunks in world &6'" + loc.getWorld().getName() + "'&f.");
+                    } else{
+                        Utilities.msg(s, "&cThere doesn't seem to be a rail at that location.");
+                        return true;
                     }
-                    totalRails = 0;
+                    totalRails = 0;     //Reset counters for next use.
                     totalChunks = 0;
+                    explored.clear();
+
                 } catch (NumberFormatException ex) {
                     Utilities.msg(s, Strings.UNUSABLE);
                 }
@@ -105,97 +101,6 @@ public class Command_Keeprail implements CommandExecutor, TabCompleter {
         }
         return true;
     }
-
-    public void getN(Location pos, HashSet<Location> history, Queue<Location> todo) {
-        for (int i = -1; i < 2; ++i) {
-            Location candidate = new Location(pos.getWorld(), pos.getBlockX(), pos.getBlockY() + i, pos.getBlockZ() - 1);
-            Material m = candidate.getBlock().getType();
-            boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
-            if (isRail && !history.contains(candidate) && !todo.contains(candidate)) {
-                if (Utilities.config.getBoolean("general.debug")) {
-                    Utilities.consoleMsg(Strings.DEBUGPREFIX + "Found chunk (" + pos.getChunk().getX() + "," + pos.getChunk().getZ() + ") in world '" + pos.getWorld().getName() + "' while discovering rails at (" + pos.getBlockX() + "," + pos.getBlockY() + "," + pos.getBlockZ() + ").");
-                }
-                updateData(candidate.getChunk());
-                todo.add(candidate);
-            }
-        }
-    }
-
-    public void getE(Location pos, HashSet<Location> history, Queue<Location> todo) {
-        for (int i = -1; i < 2; ++i) {
-            Location candidate = new Location(pos.getWorld(), pos.getBlockX() + 1, pos.getBlockY() + i, pos.getBlockZ());
-            Material m = candidate.getBlock().getType();
-            boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
-            if (isRail && !history.contains(candidate) && !todo.contains(candidate)) {
-                if (Utilities.config.getBoolean("general.debug")) {
-                    Utilities.consoleMsg(Strings.DEBUGPREFIX + "Found chunk (" + pos.getChunk().getX() + "," + pos.getChunk().getZ() + ") in world '" + pos.getWorld().getName() + "' while discovering rails at (" + pos.getBlockX() + "," + pos.getBlockY() + "," + pos.getBlockZ() + ").");
-                }
-                updateData(candidate.getChunk());
-                todo.add(candidate);
-            }
-        }
-    }
-
-    public void getS(Location pos, HashSet<Location> history, Queue<Location> todo) {
-        for (int i = -1; i < 2; ++i) {
-            Location candidate = new Location(pos.getWorld(), pos.getBlockX(), pos.getBlockY() + i, pos.getBlockZ() + 1);
-            Material m = candidate.getBlock().getType();
-            boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
-            if (isRail && !history.contains(candidate) && !todo.contains(candidate)) {
-                if (Utilities.config.getBoolean("general.debug")) {
-                    Utilities.consoleMsg(Strings.DEBUGPREFIX + "Found chunk (" + pos.getChunk().getX() + "," + pos.getChunk().getZ() + ") in world '" + pos.getWorld().getName() + "' while discovering rails at (" + pos.getBlockX() + "," + pos.getBlockY() + "," + pos.getBlockZ() + ").");
-                }
-                updateData(candidate.getChunk());
-                todo.add(candidate);
-            }
-        }
-    }
-
-    public void getW(Location pos, HashSet<Location> history, Queue<Location> todo) {
-        for (int i = -1; i < 2; ++i) {
-            Location candidate = new Location(pos.getWorld(), pos.getBlockX() - 1, pos.getBlockY() + i, pos.getBlockZ());
-            Material m = candidate.getBlock().getType();
-            boolean isRail = (m == Material.RAIL || m == Material.POWERED_RAIL || m == Material.ACTIVATOR_RAIL || m == Material.DETECTOR_RAIL);
-            if (isRail && !history.contains(candidate) && !todo.contains(candidate)) {
-                if (Utilities.config.getBoolean("general.debug")) {
-                    Utilities.consoleMsg(Strings.DEBUGPREFIX + "Found chunk (" + pos.getChunk().getX() + "," + pos.getChunk().getZ() + ") in world '" + pos.getWorld().getName() + "' while discovering rails at (" + pos.getBlockX() + "," + pos.getBlockY() + "," + pos.getBlockZ() + ").");
-                }
-                updateData(candidate.getChunk());
-                todo.add(candidate);
-            }
-        }
-    }
-
-    public void getAdjacent(Location pos, HashSet<Location> history, Queue<Location> todo) {
-        getN(pos, history, todo);
-        getE(pos, history, todo);
-        getS(pos, history, todo);
-        getW(pos, history, todo);
-    }
-
-    public void updateData(Chunk currentChunk) {
-        final String world = currentChunk.getWorld().getName();
-        for (int i = -1; i < 2; ++i) {
-            final int x = currentChunk.getX() + i;
-            for (int j = -1; j < 2; ++j) {
-                final int z = currentChunk.getZ() + j;
-                final String chunk = x + "#" + z + "#" + world;
-                if (!Utilities.chunks.contains(chunk)) {
-                    if (Utilities.config.getBoolean("general.debug")) {
-                        Utilities.consoleMsg(Strings.DEBUGPREFIX + "Marking chunk (" + x + "," + z + ") in world '" + world + "'...");
-                    }
-                    Utilities.chunks.add(chunk);
-                    Bukkit.getServer().getWorld(world).loadChunk(x, z);
-                    Bukkit.getServer().getWorld(world).setChunkForceLoaded(x, z, true);
-                    Utilities.data.set("chunks", new ArrayList<>(Utilities.chunks));
-                    Utilities.saveDataFile();
-                    Utilities.reloadDataFile();
-                    ++totalChunks;
-                }
-            }
-        }
-    }
-
     public List<String> onTabComplete(CommandSender s, Command c, String label, String[] args) {
         ArrayList<String> tabs = new ArrayList<>();
         String[] newArgs = CommandWrapper.getArgs(args);
